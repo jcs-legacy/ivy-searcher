@@ -43,33 +43,66 @@
 (defconst ivy-searcher--candidate-format "%s:%s:%s"
   "Format to display candidate.")
 
-(defun ivy-searcher-test ()
-  (interactive)
-  (let ((lst (searcher-search-in-project "searcher"))
+(defconst ivy-search--prompt "searcher: "
+  "Prompt string when using `ivy-searcher'.")
+
+(defun ivy-searcher--do-action (cand)
+  "Do action with CAND."
+  (let* ((str-lst (split-string cand ":"))
+         (file (nth 0 str-lst))
+         (pt (string-to-number (nth 1 str-lst))))
+    (find-file file)
+    (goto-char (1+ pt))))
+
+(defun ivy-searcher--do-project (str)
+  "Search for STR in project."
+  (let ((project-dir (cdr (project-current)))
+        (lst (searcher-search-in-project str))
         (candidates '())
         (file nil) (pos nil) (ln-str nil)
         (candidate ""))
-    (message "%s" lst)
     (dolist (item lst)
-      (message "item: %s" item)
+      (setq file (plist-get item :file))
+      (setq file (s-replace project-dir "" file))
+      (setq pos (plist-get item :position))
+      (setq ln-str (plist-get item :string))
+      (setq candidate (format ivy-searcher--candidate-format file pos ln-str))
+      (push candidate candidates))
+    candidates))
+
+(defun ivy-searcher--do-file (str)
+  "Search for STR in file."
+  (let ((lst (searcher-search-in-file (buffer-file-name) str))
+        (candidates '())
+        (file nil) (pos nil) (ln-str nil)
+        (candidate ""))
+    (dolist (item lst)
       (setq file (plist-get item :file))
       (setq pos (plist-get item :position))
       (setq ln-str (plist-get item :string))
-      (message "file: %s" file)
-      (setq candidate (format "%s:%s:%s" file pos ln-str))
+      (setq candidate (format ivy-searcher--candidate-format file pos ln-str))
       (push candidate candidates))
-    (ivy-read "searcher: " candidates)))
+    candidates))
 
 ;;;###autoload
 (defun ivy-searcher-project ()
-  ""
+  "Search through the project."
   (interactive)
-  (ivy-read "searcher: " lst
+  (ivy-read ivy-search--prompt
+            #'ivy-searcher--do-project
             :dynamic-collection t
-            :action (lambda (cand)
-                      (message "data: %s" cand)))
-  )
+            :require-match t
+            :action #'ivy-searcher--do-action))
 
+;;;###autoload
+(defun ivy-search-file ()
+  "Search through current file."
+  (interactive)
+  (ivy-read ivy-search--prompt
+            #'ivy-searcher--do-file
+            :dynamic-collection t
+            :require-match t
+            :action #'ivy-searcher--do-action))
 
 (provide 'ivy-searcher)
 ;;; ivy-searcher.el ends here
