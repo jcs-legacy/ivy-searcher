@@ -55,7 +55,7 @@
   (let* ((str-lst (split-string cand ":"))
          (file (nth 0 str-lst))
          (pt (string-to-number (nth 1 str-lst))))
-    (find-file file)
+    (if (file-exists-p file) (find-file file) (switch-to-buffer file))
     (goto-char (1+ pt))))
 
 (defun ivy-searcher--do-search-action (cands dir)
@@ -98,7 +98,7 @@
 (defun ivy-searcher-file ()
   "Search through current file."
   (interactive)
-  (let ((ivy-searcher--target-buffer (buffer-file-name)))
+  (let ((ivy-searcher--target-buffer (or (buffer-file-name) (buffer-name))))
     (ivy-read ivy-searcher--prompt
               #'ivy-searcher--do-file
               :dynamic-collection t
