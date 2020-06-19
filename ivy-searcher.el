@@ -7,7 +7,7 @@
 ;; Description: Ivy interface to use searcher.
 ;; Keyword: ivy interface use searcher search
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "25.1") (ivy "0.8.0"))
+;; Package-Requires: ((emacs "25.1") (ivy "0.8.0") (s "1.12.0"))
 ;; URL: https://github.com/jcs090218/ivy-searcher
 
 ;; This file is NOT part of GNU Emacs.
@@ -33,6 +33,7 @@
 ;;; Code:
 
 (require 'ivy)
+(require 's)
 
 (defgroup ivy-searcher nil
   "Ivy interface to use searcher."
