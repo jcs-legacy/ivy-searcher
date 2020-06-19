@@ -6,8 +6,8 @@
 ;; Author: Shen, Jen-Chieh <jcs090218@gmail.com>
 ;; Description: Ivy interface to use searcher.
 ;; Keyword: ivy interface use searcher search
-;; Version: 0.0.1
-;; Package-Requires: ((emacs "24.3") (ivy "0.8.0"))
+;; Version: 0.1.0
+;; Package-Requires: ((emacs "25.1") (ivy "0.8.0"))
 ;; URL: https://github.com/jcs090218/ivy-searcher
 
 ;; This file is NOT part of GNU Emacs.
@@ -43,10 +43,13 @@
 (defconst ivy-searcher--candidate-format "%s:%s:%s"
   "Format to display candidate.")
 
-(defconst ivy-search--prompt "searcher: "
+(defconst ivy-searcher--prompt "searcher: "
   "Prompt string when using `ivy-searcher'.")
 
-(defun ivy-searcher--do-action (cand)
+(defvar ivy-searcher--target-buffer nil
+  "Record down the current target buffer.")
+
+(defun ivy-searcher--do-complete-action (cand)
   "Do action with CAND."
   (let* ((str-lst (split-string cand ":"))
          (file (nth 0 str-lst))
@@ -54,55 +57,52 @@
     (find-file file)
     (goto-char (1+ pt))))
 
-(defun ivy-searcher--do-project (str)
-  "Search for STR in project."
-  (let ((project-dir (cdr (project-current)))
-        (lst (searcher-search-in-project str))
-        (candidates '())
+(defun ivy-searcher--do-search-action (cands dir)
+  "Do the search action by CANDS and DIR."
+  (let ((candidates '())
         (file nil) (pos nil) (ln-str nil)
         (candidate ""))
-    (dolist (item lst)
+    (dolist (item cands)
       (setq file (plist-get item :file))
-      (setq file (s-replace project-dir "" file))
+      (setq file (s-replace dir "" file))
       (setq pos (plist-get item :position))
       (setq ln-str (plist-get item :string))
       (setq candidate (format ivy-searcher--candidate-format file pos ln-str))
       (push candidate candidates))
     candidates))
 
+(defun ivy-searcher--do-project (str)
+  "Search for STR in project."
+  (let ((project-dir (cdr (project-current)))
+        (cands (searcher-search-in-project str)))
+    (ivy-searcher--do-search-action cands project-dir)))
+
 (defun ivy-searcher--do-file (str)
   "Search for STR in file."
-  (let ((lst (searcher-search-in-file (buffer-file-name) str))
-        (candidates '())
-        (file nil) (pos nil) (ln-str nil)
-        (candidate ""))
-    (dolist (item lst)
-      (setq file (plist-get item :file))
-      (setq pos (plist-get item :position))
-      (setq ln-str (plist-get item :string))
-      (setq candidate (format ivy-searcher--candidate-format file pos ln-str))
-      (push candidate candidates))
-    candidates))
+  (let ((dir (concat (f-dirname ivy-searcher--target-buffer) "/"))
+        (cands (searcher-search-in-file ivy-searcher--target-buffer str)))
+    (ivy-searcher--do-search-action cands dir)))
 
 ;;;###autoload
 (defun ivy-searcher-project ()
   "Search through the project."
   (interactive)
-  (ivy-read ivy-search--prompt
+  (ivy-read ivy-searcher--prompt
             #'ivy-searcher--do-project
             :dynamic-collection t
             :require-match t
-            :action #'ivy-searcher--do-action))
+            :action #'ivy-searcher--do-complete-action))
 
 ;;;###autoload
-(defun ivy-search-file ()
+(defun ivy-searcher-file ()
   "Search through current file."
   (interactive)
-  (ivy-read ivy-search--prompt
-            #'ivy-searcher--do-file
-            :dynamic-collection t
-            :require-match t
-            :action #'ivy-searcher--do-action))
+  (let ((ivy-searcher--target-buffer (buffer-file-name)))
+    (ivy-read ivy-searcher--prompt
+              #'ivy-searcher--do-file
+              :dynamic-collection t
+              :require-match t
+              :action #'ivy-searcher--do-complete-action)))
 
 (provide 'ivy-searcher)
 ;;; ivy-searcher.el ends here
