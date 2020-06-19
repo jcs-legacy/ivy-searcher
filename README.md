@@ -4,6 +4,16 @@
 # ivy-searcher
 > Ivy interface to use searcher.
 
+## Usage
+
+`ivy-searcher-file`
+
+Search `string` or `regex` in current file or buffer.
+
+`ivy-searcher-project`
+
+Search `string` or `regex` in current project.
+
 ## Contribution
 
 If you would like to contribute to this project, you may either
