@@ -54,16 +54,35 @@
   :type 'string
   :group 'ivy-searcher)
 
-(defconst ivy-searcher--prompt "searcher: "
+(defconst ivy-searcher--prompt-format "[Searcher] %s: "
   "Prompt string when using `ivy-searcher'.")
 
 (defvar ivy-searcher--target-buffer nil
   "Record down the current target buffer.")
 
+(defvar ivy-searcher--search-string ""
+  "Record down the current search string.")
+
+(defvar ivy-searcher--replace-string ""
+  "Record down the current replace string.")
+
+(defvar ivy-searcher--replace-candidates '()
+  "Record down all the candidates for searching.")
+
+(defun ivy-searcher--is-contain-list-string (in-list in-str)
+  "Check if IN-STR contain in any string in the IN-LIST."
+  (cl-some #'(lambda (lb-sub-str) (string-match-p (regexp-quote lb-sub-str) in-str)) in-list))
+
 (defun ivy-searcher--goto-line (ln)
   "Goto LN line number."
   (goto-char (point-min))
   (forward-line (1- ln)))
+
+(defun ivy-searcher--get-string-from-file (path)
+  "Return PATH file content."
+  (with-temp-buffer
+    (insert-file-contents path)
+    (buffer-string)))
 
 (defun ivy-searcher--separator-string ()
   "Return the separator string with text properties."
@@ -71,19 +90,35 @@
 
 (defun ivy-searcher--propertize-line-string (ln-str input col)
   "Propertize the LN-STR with INPUT and column (COL)."
-  (let ((key-pt (1+ col)) (str-len (length ln-str)))
-    (when (> key-pt str-len) (setq key-pt str-len))
+  (let ((key-pt (1+ col)))
     (concat
      (substring ln-str 0 key-pt)
      (propertize input 'face 'ivy-highlight-face)
-     (substring ln-str (+ key-pt (length input)) str-len))))
+     (substring ln-str (+ key-pt (length input)) (length ln-str)))))
 
-(defun ivy-searcher--do-complete-action (cand)
+(defun ivy-searcher--candidate-to-plist (cand)
+  "Convert CAND string to a plist data."
+  (let* ((data (split-string cand ivy-searcher-separator))
+         (file (nth 0 data)) (ln-str nil)
+         (pos nil) (ln nil) (col nil) )
+    (cl-case ivy-searcher-display-info
+      ('position
+       (setq pos (nth 1 data))
+       (setq ln-str (nth 2 data)))
+      ('line/column
+       (setq ln (nth 1 data))
+       (setq col (nth 2 data))
+       (setq ln-str (nth 3 data))))
+    (list :file file :string ln-str :position pos :line-number ln :column col)))
+
+;;; Search
+
+(defun ivy-searcher--do-search-complete-action (cand)
   "Do action with CAND."
-  (let* ((str-lst (split-string cand ivy-searcher-separator))
-         (file (nth 0 str-lst))
-         (pt-or-ln (string-to-number (nth 1 str-lst)))
-         (col (string-to-number (nth 2 str-lst))))
+  (let* ((data (ivy-searcher--candidate-to-plist cand))
+         (file (plist-get data :file))
+         (pos (plist-get data :position))
+         (ln (plist-get data :line-number)) (col (plist-get data :column)))
     (if (file-exists-p file) (find-file file) (switch-to-buffer file))
     (cl-case ivy-searcher-display-info
       ('position (goto-char (1+ pt-or-ln)))
@@ -91,11 +126,12 @@
        (ivy-searcher--goto-line pt-or-ln)
        (move-to-column (1+ col))))))
 
-(defun ivy-searcher--do-search-action (input cands dir)
+(defun ivy-searcher--do-search-input-action (input cands dir)
   "Do the search action by INPUT, CANDS and DIR."
   (let ((candidates '())
         (file nil) (ln-str nil) (pos nil) (ln nil) (col nil)
         (candidate ""))
+    (setq ivy-searcher--replace-candidates '())  ; Clean up.
     (dolist (item cands)
       (setq file (plist-get item :file)) (setq file (s-replace dir "" file))
       (progn  ; Resolve line string.
@@ -122,39 +158,101 @@
                        (propertize col 'face 'ivy-grep-line-number)
                        (ivy-searcher--separator-string)
                        ln-str))))
-      (push candidate candidates))
+      (push candidate candidates)
+      ;; Record down all the candidates.
+      (push (cons candidate item) ivy-searcher--replace-candidates))
     candidates))
 
-(defun ivy-searcher--do-project (str)
-  "Search for STR in project."
+(defun ivy-searcher--do-search-project (input)
+  "Search for INPUT in project."
   (let ((project-dir (cdr (project-current)))
-        (cands (searcher-search-in-project str)))
-    (ivy-searcher--do-search-action str cands project-dir)))
+        (cands (searcher-search-in-project input)))
+    (setq ivy-searcher--search-string input)
+    (ivy-searcher--do-search-input-action input cands project-dir)))
 
-(defun ivy-searcher--do-file (str)
-  "Search for STR in file."
+(defun ivy-searcher--do-search-file (input)
+  "Search for INPUT in file."
   (let ((dir (concat (f-dirname ivy-searcher--target-buffer) "/"))
-        (cands (searcher-search-in-file ivy-searcher--target-buffer str)))
-    (ivy-searcher--do-search-action str cands dir)))
+        (cands (searcher-search-in-file ivy-searcher--target-buffer input)))
+    (setq ivy-searcher--search-string input)
+    (ivy-searcher--do-search-input-action input cands dir)))
 
 ;;;###autoload
-(defun ivy-searcher-project ()
+(defun ivy-searcher-search-project ()
   "Search through the project."
   (interactive)
-  (ivy-read ivy-searcher--prompt
-            #'ivy-searcher--do-project
+  (ivy-read (format ivy-searcher--prompt-format "Search")
+            #'ivy-searcher--do-search-project
             :dynamic-collection t
-            :action #'ivy-searcher--do-complete-action))
+            :action #'ivy-searcher--do-search-complete-action))
 
 ;;;###autoload
-(defun ivy-searcher-file ()
+(defun ivy-searcher-search-file ()
   "Search through current file."
   (interactive)
   (let ((ivy-searcher--target-buffer (or (buffer-file-name) (buffer-name))))
-    (ivy-read ivy-searcher--prompt
-              #'ivy-searcher--do-file
+    (ivy-read (format ivy-searcher--prompt-format "Search")
+              #'ivy-searcher--do-search-file
               :dynamic-collection t
-              :action #'ivy-searcher--do-complete-action)))
+              :action #'ivy-searcher--do-search-complete-action)))
+
+;;; Replace
+
+(defun ivy-searcher--do-replace-complete-action (_cand)
+  "Replace all recorded candidates."
+  (let ((output-files '()))
+    (dolist (cand ivy-searcher--replace-candidates)
+      (let* ((cand-str (car cand)) (cand-plist (cdr cand))
+             (file (plist-get cand-plist :file))
+             (pos (plist-get cand-plist :position))
+             (new-content nil))
+        (unless (ivy-searcher--is-contain-list-string output-files file)
+          (push file output-files)
+          (setq new-content (s-replace-regexp ivy-searcher--search-string
+                                              ivy-searcher--replace-string
+                                              (ivy-searcher--get-string-from-file file)))
+          (write-region new-content nil file))))))
+
+(defun ivy-searcher--do-replace (input)
+  "Update the candidates with input in ivy so the user can look at it."
+  (setq ivy-searcher--replace-string input)
+  (let ((candidates '()))
+    (dolist (cand ivy-searcher--replace-candidates)
+      (let* ((cand-str (car cand)) (cand-plist (cdr cand))
+             (ln-str (plist-get cand-plist :string)))
+        (setq cand
+              (concat
+               (substring cand-str 0 (- (length cand-str) (length ln-str)))
+               (s-replace-regexp ivy-searcher--search-string input ln-str)))
+        (push cand candidates)))
+    (reverse candidates)))
+
+(defun ivy-searcher--do-replace-matched-action (_cand)
+  "Get the new string input and replace all candidates."
+  (ivy-read (format ivy-searcher--prompt-format
+                    (format "Replace %s with" ivy-searcher--search-string))
+            #'ivy-searcher--do-replace
+            :dynamic-collection t
+            :action #'ivy-searcher--do-replace-complete-action))
+
+;;;###autoload
+(defun ivy-searcher-replace-project ()
+  "Search and replace string in project."
+  (interactive)
+  (ivy-read (format ivy-searcher--prompt-format "Replace")
+            #'ivy-searcher--do-search-project
+            :dynamic-collection t
+            :action #'ivy-searcher--do-replace-matched-action))
+
+;;;###autoload
+(defun ivy-searcher-replace-file ()
+  "Search and replace string in file."
+  (interactive)
+  (let ((ivy-searcher--target-buffer (or (buffer-file-name) (buffer-name))))
+    (ivy-read (format ivy-searcher--prompt-format "Replace")
+              #'ivy-searcher--do-search-file
+              :dynamic-collection t
+              :action #'ivy-searcher--do-replace-matched-action)))
 
 (provide 'ivy-searcher)
 ;;; ivy-searcher.el ends here
