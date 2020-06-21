@@ -6,7 +6,7 @@
 ;; Author: Shen, Jen-Chieh <jcs090218@gmail.com>
 ;; Description: Ivy interface to use searcher.
 ;; Keyword: ivy interface use searcher search
-;; Version: 0.1.0
+;; Version: 0.1.1
 ;; Package-Requires: ((emacs "25.1") (ivy "0.8.0") (searcher "0.1.0") (s "1.12.0") (f "0.20.0"))
 ;; URL: https://github.com/jcs090218/ivy-searcher
 
@@ -32,6 +32,7 @@
 
 ;;; Code:
 
+(require 'cl-lib)
 (require 'ivy)
 (require 'searcher)
 (require 's)
@@ -42,14 +43,26 @@
   :group 'tool
   :link '(url-link :tag "Repository" "https://github.com/jcs-elpa/ivy-searcher"))
 
-(defconst ivy-searcher--candidate-format "%s:%s:%s"
-  "Format to display candidate.")
+(defcustom ivy-searcher-display-info 'position
+  "Display option for file information."
+  :type '(choice (const :tag "position" position)
+                 (const :tag "line/column" line/column))
+  :group 'ivy-searcher)
+
+(defcustom ivy-searcher-separator ":"
+  "Separator string for display."
+  :type 'string
+  :group 'ivy-searcher)
 
 (defconst ivy-searcher--prompt "searcher: "
   "Prompt string when using `ivy-searcher'.")
 
 (defvar ivy-searcher--target-buffer nil
   "Record down the current target buffer.")
+
+(defun ivy-searcher--separator-string ()
+  "Return the separator string with text properties."
+  (propertize ivy-searcher-separator 'face 'default))
 
 (defun ivy-searcher--do-complete-action (cand)
   "Do action with CAND."
@@ -62,14 +75,34 @@
 (defun ivy-searcher--do-search-action (cands dir)
   "Do the search action by CANDS and DIR."
   (let ((candidates '())
-        (file nil) (pos nil) (ln-str nil)
+        (file nil) (ln-str nil) (pos nil) (ln nil) (col nil)
         (candidate ""))
     (dolist (item cands)
-      (setq file (plist-get item :file))
-      (setq file (s-replace dir "" file))
-      (setq pos (plist-get item :position))
+      (setq file (plist-get item :file)) (setq file (s-replace dir "" file))
       (setq ln-str (plist-get item :string))
-      (setq candidate (format ivy-searcher--candidate-format file pos ln-str))
+      (progn
+        (setq pos (plist-get item :position)) (setq pos (number-to-string pos))
+        (setq ln (plist-get item :line-number)) (setq ln (number-to-string ln))
+        (setq col (plist-get item :column)) (setq col (number-to-string col)))
+      (message "-- ln: %s" ln)
+      (setq candidate
+            (cl-case ivy-searcher-display-info
+              ('position
+               (format "%s%s%s%s%s"
+                       (propertize file 'face 'ivy-grep-info)
+                       (ivy-searcher--separator-string)
+                       (propertize pos 'face 'ivy-grep-line-number)
+                       (ivy-searcher--separator-string)
+                       ln-str))
+              ('line/column
+               (format "%s%s%s%s%s%s%s"
+                       (propertize file 'face 'ivy-grep-info)
+                       (ivy-searcher--separator-string)
+                       (propertize ln 'face 'ivy-grep-line-number)
+                       (ivy-searcher--separator-string)
+                       (propertize col 'face 'ivy-grep-line-number)
+                       (ivy-searcher--separator-string)
+                       ln-str))))
       (push candidate candidates))
     candidates))
 
