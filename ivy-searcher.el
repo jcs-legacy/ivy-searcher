@@ -6,7 +6,7 @@
 ;; Author: Shen, Jen-Chieh <jcs090218@gmail.com>
 ;; Description: Ivy interface to use searcher.
 ;; Keyword: ivy interface use searcher search
-;; Version: 0.1.3
+;; Version: 0.2.0
 ;; Package-Requires: ((emacs "25.1") (ivy "0.8.0") (searcher "0.1.2") (s "1.12.0") (f "0.20.0"))
 ;; URL: https://github.com/jcs-elpa/ivy-searcher
 
