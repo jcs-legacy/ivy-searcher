@@ -118,12 +118,17 @@
   (let* ((data (ivy-searcher--candidate-to-plist cand))
          (file (plist-get data :file))
          (pos (plist-get data :position))
-         (ln (plist-get data :line-number)) (col (plist-get data :column)))
+         (ln (plist-get data :line-number))
+         (col (plist-get data :column)))
     (if (file-exists-p file) (find-file file) (switch-to-buffer file))
     (cl-case ivy-searcher-display-info
-      ('position (goto-char (1+ pt-or-ln)))
+      ('position
+       (setq pos (string-to-number pos))
+       (goto-char (1+ pos)))
       ('line/column
-       (ivy-searcher--goto-line pt-or-ln)
+       (setq ln (string-to-number ln))
+       (setq col (string-to-number col))
+       (ivy-searcher--goto-line ln)
        (move-to-column (1+ col))))))
 
 (defun ivy-searcher--do-search-input-action (input cands dir)
@@ -202,9 +207,8 @@
   "Replace all recorded candidates."
   (let ((output-files '()))
     (dolist (cand ivy-searcher--replace-candidates)
-      (let* ((cand-str (car cand)) (cand-plist (cdr cand))
+      (let* ((cand-plist (cdr cand))
              (file (plist-get cand-plist :file))
-             (pos (plist-get cand-plist :position))
              (new-content nil))
         (unless (ivy-searcher--is-contain-list-string output-files file)
           (push file output-files)
@@ -214,7 +218,7 @@
           (write-region new-content nil file))))))
 
 (defun ivy-searcher--do-replace (input)
-  "Update the candidates with input in ivy so the user can look at it."
+  "Update the candidates with INPUT in ivy so the user can look at it."
   (setq ivy-searcher--replace-string input)
   (let ((candidates '()))
     (dolist (cand ivy-searcher--replace-candidates)
