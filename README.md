@@ -6,13 +6,25 @@
 
 ## Usage
 
-`ivy-searcher-file`
+### Searching
+
+`ivy-searcher-search-file`
 
 Search `string` or `regex` in current file or buffer.
 
-`ivy-searcher-project`
+`ivy-searcher-search-project`
 
 Search `string` or `regex` in current project.
+
+### Replacing
+
+`ivy-searcher-replace-file`
+
+Search and replace `string` or `regex` in current file or buffer.
+
+`ivy-searcher-replace-project`
+
+Search and replace `string` or `regex` in current project.
 
 ## Contribution
 
