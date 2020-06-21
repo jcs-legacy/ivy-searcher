@@ -60,6 +60,11 @@
 (defvar ivy-searcher--target-buffer nil
   "Record down the current target buffer.")
 
+(defun ivy-searcher--goto-line (ln)
+  "Goto LN line number."
+  (goto-char (point-min))
+  (forward-line (1- ln)))
+
 (defun ivy-searcher--separator-string ()
   "Return the separator string with text properties."
   (propertize ivy-searcher-separator 'face 'default))
@@ -77,9 +82,14 @@
   "Do action with CAND."
   (let* ((str-lst (split-string cand ivy-searcher-separator))
          (file (nth 0 str-lst))
-         (pt (string-to-number (nth 1 str-lst))))
+         (pt-or-ln (string-to-number (nth 1 str-lst)))
+         (col (string-to-number (nth 2 str-lst))))
     (if (file-exists-p file) (find-file file) (switch-to-buffer file))
-    (goto-char (1+ pt))))
+    (cl-case ivy-searcher-display-info
+      ('position (goto-char (1+ pt-or-ln)))
+      ('line/column
+       (ivy-searcher--goto-line pt-or-ln)
+       (move-to-column (1+ col))))))
 
 (defun ivy-searcher--do-search-action (input cands dir)
   "Do the search action by INPUT, CANDS and DIR."
