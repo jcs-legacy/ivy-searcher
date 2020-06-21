@@ -84,7 +84,6 @@
         (setq pos (plist-get item :position)) (setq pos (number-to-string pos))
         (setq ln (plist-get item :line-number)) (setq ln (number-to-string ln))
         (setq col (plist-get item :column)) (setq col (number-to-string col)))
-      (message "-- ln: %s" ln)
       (setq candidate
             (cl-case ivy-searcher-display-info
               ('position
