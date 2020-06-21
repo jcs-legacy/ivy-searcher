@@ -64,38 +64,48 @@
   "Return the separator string with text properties."
   (propertize ivy-searcher-separator 'face 'default))
 
+(defun ivy-searcher--propertize-line-string (ln-str input col)
+  "Propertize the LN-STR with INPUT and column (COL)."
+  (let ((key-pt (1+ col)) (str-len (length ln-str)))
+    (when (> key-pt str-len) (setq key-pt str-len))
+    (concat
+     (substring ln-str 0 key-pt)
+     (propertize input 'face 'ivy-highlight-face)
+     (substring ln-str (+ key-pt (length input)) str-len))))
+
 (defun ivy-searcher--do-complete-action (cand)
   "Do action with CAND."
-  (let* ((str-lst (split-string cand ":"))
+  (let* ((str-lst (split-string cand ivy-searcher-separator))
          (file (nth 0 str-lst))
          (pt (string-to-number (nth 1 str-lst))))
     (if (file-exists-p file) (find-file file) (switch-to-buffer file))
     (goto-char (1+ pt))))
 
-(defun ivy-searcher--do-search-action (cands dir)
-  "Do the search action by CANDS and DIR."
+(defun ivy-searcher--do-search-action (input cands dir)
+  "Do the search action by INPUT, CANDS and DIR."
   (let ((candidates '())
         (file nil) (ln-str nil) (pos nil) (ln nil) (col nil)
         (candidate ""))
     (dolist (item cands)
       (setq file (plist-get item :file)) (setq file (s-replace dir "" file))
-      (setq ln-str (plist-get item :string))
-      (progn
+      (progn  ; Resolve line string.
+        (setq ln-str (plist-get item :string))
+        (setq col (plist-get item :column))
+        (setq ln-str (ivy-searcher--propertize-line-string ln-str input col)))
+      (progn  ; Resolve information.
         (setq pos (plist-get item :position)) (setq pos (number-to-string pos))
         (setq ln (plist-get item :line-number)) (setq ln (number-to-string ln))
-        (setq col (plist-get item :column)) (setq col (number-to-string col)))
+        (setq col (number-to-string col)))
       (setq candidate
             (cl-case ivy-searcher-display-info
               ('position
-               (format "%s%s%s%s%s"
-                       (propertize file 'face 'ivy-grep-info)
+               (concat (propertize file 'face 'ivy-grep-info)
                        (ivy-searcher--separator-string)
                        (propertize pos 'face 'ivy-grep-line-number)
                        (ivy-searcher--separator-string)
                        ln-str))
               ('line/column
-               (format "%s%s%s%s%s%s%s"
-                       (propertize file 'face 'ivy-grep-info)
+               (concat (propertize file 'face 'ivy-grep-info)
                        (ivy-searcher--separator-string)
                        (propertize ln 'face 'ivy-grep-line-number)
                        (ivy-searcher--separator-string)
@@ -109,13 +119,13 @@
   "Search for STR in project."
   (let ((project-dir (cdr (project-current)))
         (cands (searcher-search-in-project str)))
-    (ivy-searcher--do-search-action cands project-dir)))
+    (ivy-searcher--do-search-action str cands project-dir)))
 
 (defun ivy-searcher--do-file (str)
   "Search for STR in file."
   (let ((dir (concat (f-dirname ivy-searcher--target-buffer) "/"))
         (cands (searcher-search-in-file ivy-searcher--target-buffer str)))
-    (ivy-searcher--do-search-action cands dir)))
+    (ivy-searcher--do-search-action str cands dir)))
 
 ;;;###autoload
 (defun ivy-searcher-project ()
@@ -124,7 +134,6 @@
   (ivy-read ivy-searcher--prompt
             #'ivy-searcher--do-project
             :dynamic-collection t
-            :require-match t
             :action #'ivy-searcher--do-complete-action))
 
 ;;;###autoload
@@ -135,7 +144,6 @@
     (ivy-read ivy-searcher--prompt
               #'ivy-searcher--do-file
               :dynamic-collection t
-              :require-match t
               :action #'ivy-searcher--do-complete-action)))
 
 (provide 'ivy-searcher)
