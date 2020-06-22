@@ -189,6 +189,7 @@
   (ivy-read (format ivy-searcher--prompt-format "Search")
             #'ivy-searcher--do-search-project
             :dynamic-collection t
+            :require-match t
             :action #'ivy-searcher--do-search-complete-action))
 
 ;;;###autoload
@@ -199,6 +200,7 @@
     (ivy-read (format ivy-searcher--prompt-format "Search")
               #'ivy-searcher--do-search-file
               :dynamic-collection t
+              :require-match t
               :action #'ivy-searcher--do-search-complete-action)))
 
 ;;; Replace
@@ -237,6 +239,7 @@
                     (format "Replace %s with" ivy-searcher--search-string))
             #'ivy-searcher--do-replace
             :dynamic-collection t
+            :require-match t
             :action #'ivy-searcher--do-replace-complete-action))
 
 ;;;###autoload
@@ -246,6 +249,7 @@
   (ivy-read (format ivy-searcher--prompt-format "Replace")
             #'ivy-searcher--do-search-project
             :dynamic-collection t
+            :require-match t
             :action #'ivy-searcher--do-replace-matched-action))
 
 ;;;###autoload
@@ -256,6 +260,7 @@
     (ivy-read (format ivy-searcher--prompt-format "Replace")
               #'ivy-searcher--do-search-file
               :dynamic-collection t
+              :require-match t
               :action #'ivy-searcher--do-replace-matched-action)))
 
 (provide 'ivy-searcher)
