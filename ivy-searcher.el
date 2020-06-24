@@ -54,8 +54,16 @@
   :type 'string
   :group 'ivy-searcher)
 
+(defcustom ivy-searcher-default-input ""
+  "Default initial input for searcher."
+  :type 'string
+  :group 'ivy-searcher)
+
 (defconst ivy-searcher--prompt-format "[Searcher] %s: "
   "Prompt string when using `ivy-searcher'.")
+
+(defvar ivy-searcher--initial-input nil
+  "Current initial input for searcher.")
 
 (defvar ivy-searcher--target-buffer nil
   "Record down the current target buffer.")
@@ -110,6 +118,12 @@
        (setq col (nth 2 data))
        (setq ln-str (nth 3 data))))
     (list :file file :string ln-str :position pos :line-number ln :column col)))
+
+(defun ivy-searcher--initial-input-or-region ()
+  "Return the default initiali input depend if region is active or not."
+  (if (use-region-p)
+      (buffer-substring-no-properties (region-beginning) (region-end))
+    ivy-searcher-default-input))
 
 ;;; Search
 
@@ -186,19 +200,23 @@
 (defun ivy-searcher-search-project ()
   "Search through the project."
   (interactive)
-  (ivy-read (format ivy-searcher--prompt-format "Search")
-            #'ivy-searcher--do-search-project
-            :dynamic-collection t
-            :require-match t
-            :action #'ivy-searcher--do-search-complete-action))
+  (let ((ivy-searcher--initial-input (ivy-searcher--initial-input-or-region)))
+    (ivy-read (format ivy-searcher--prompt-format "Search")
+              #'ivy-searcher--do-search-project
+              :initial-input ivy-searcher--initial-input
+              :dynamic-collection t
+              :require-match t
+              :action #'ivy-searcher--do-search-complete-action)))
 
 ;;;###autoload
 (defun ivy-searcher-search-file ()
   "Search through current file."
   (interactive)
-  (let ((ivy-searcher--target-buffer (or (buffer-file-name) (buffer-name))))
+  (let ((ivy-searcher--initial-input (ivy-searcher--initial-input-or-region))
+        (ivy-searcher--target-buffer (or (buffer-file-name) (buffer-name))))
     (ivy-read (format ivy-searcher--prompt-format "Search")
               #'ivy-searcher--do-search-file
+              :initial-input ivy-searcher--initial-input
               :dynamic-collection t
               :require-match t
               :action #'ivy-searcher--do-search-complete-action)))
@@ -246,19 +264,23 @@
 (defun ivy-searcher-replace-project ()
   "Search and replace string in project."
   (interactive)
-  (ivy-read (format ivy-searcher--prompt-format "Replace")
-            #'ivy-searcher--do-search-project
-            :dynamic-collection t
-            :require-match t
-            :action #'ivy-searcher--do-replace-matched-action))
+  (let ((ivy-searcher--initial-input (ivy-searcher--initial-input-or-region)))
+    (ivy-read (format ivy-searcher--prompt-format "Replace")
+              #'ivy-searcher--do-search-project
+              :initial-input ivy-searcher--initial-input
+              :dynamic-collection t
+              :require-match t
+              :action #'ivy-searcher--do-replace-matched-action)))
 
 ;;;###autoload
 (defun ivy-searcher-replace-file ()
   "Search and replace string in file."
   (interactive)
-  (let ((ivy-searcher--target-buffer (or (buffer-file-name) (buffer-name))))
+  (let ((ivy-searcher--initial-input (ivy-searcher--initial-input-or-region))
+        (ivy-searcher--target-buffer (or (buffer-file-name) (buffer-name))))
     (ivy-read (format ivy-searcher--prompt-format "Replace")
               #'ivy-searcher--do-search-file
+              :initial-input ivy-searcher--initial-input
               :dynamic-collection t
               :require-match t
               :action #'ivy-searcher--do-replace-matched-action)))
