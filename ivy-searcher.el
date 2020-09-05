@@ -79,7 +79,7 @@
 
 (defun ivy-searcher--is-contain-list-string (in-list in-str)
   "Check if IN-STR contain in any string in the IN-LIST."
-  (cl-some #'(lambda (lb-sub-str) (string-match-p (regexp-quote lb-sub-str) in-str)) in-list))
+  (cl-some (lambda (lb-sub-str) (string-match-p (regexp-quote lb-sub-str) in-str)) in-list))
 
 (defun ivy-searcher--goto-line (ln)
   "Goto LN line number."
@@ -191,7 +191,7 @@
 
 (defun ivy-searcher--do-search-file (input)
   "Search for INPUT in file."
-  (let ((dir (concat (f-dirname ivy-searcher--target-buffer) "/"))
+  (let ((dir (f-slash (f-dirname ivy-searcher--target-buffer)))
         (cands (searcher-search-in-file ivy-searcher--target-buffer input)))
     (setq ivy-searcher--search-string input)
     (ivy-searcher--do-search-input-action input cands dir)))
