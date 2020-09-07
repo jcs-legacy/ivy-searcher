@@ -104,11 +104,10 @@
 
 (defun ivy-searcher--propertize-line-string (ln-str input col)
   "Propertize the LN-STR with INPUT and column (COL)."
-  (let ((key-pt (1+ col)))
-    (concat
-     (substring ln-str 0 key-pt)
-     (propertize input 'face 'ivy-highlight-face)
-     (substring ln-str (+ key-pt (length input)) (length ln-str)))))
+  (concat
+   (substring ln-str 0 col)
+   (propertize input 'face 'ivy-highlight-face)
+   (substring ln-str (+ col (length input)) (length ln-str))))
 
 (defun ivy-searcher--candidate-to-plist (cand)
   "Convert CAND string to a plist data."
