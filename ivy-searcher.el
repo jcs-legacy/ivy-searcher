@@ -77,6 +77,12 @@
 (defvar ivy-searcher--replace-candidates '()
   "Record down all the candidates for searching.")
 
+;;; Util
+
+(defun ivy-searcher--project-path ()
+  "Get the current project path."
+  (cdr (project-current)))
+
 (defun ivy-searcher--is-contain-list-string (in-list in-str)
   "Check if IN-STR contain in any string in the IN-LIST."
   (cl-some (lambda (lb-sub-str) (string-match-p (regexp-quote lb-sub-str) in-str)) in-list))
@@ -129,11 +135,13 @@
 
 (defun ivy-searcher--do-search-complete-action (cand)
   "Do action with CAND."
-  (let* ((data (ivy-searcher--candidate-to-plist cand))
+  (let* ((project-dir (ivy-searcher--project-path))
+         (data (ivy-searcher--candidate-to-plist cand))
          (file (plist-get data :file))
          (pos (plist-get data :position))
          (ln (plist-get data :line-number))
          (col (plist-get data :column)))
+    (when project-dir (setq file (f-join project-dir file)))
     (if (file-exists-p file) (find-file file) (switch-to-buffer file))
     (cl-case ivy-searcher-display-info
       ('position
@@ -184,7 +192,7 @@
 
 (defun ivy-searcher--do-search-project (input)
   "Search for INPUT in project."
-  (let ((project-dir (cdr (project-current)))
+  (let ((project-dir (ivy-searcher--project-path))
         (cands (searcher-search-in-project input)))
     (setq ivy-searcher--search-string input)
     (ivy-searcher--do-search-input-action input cands project-dir)))
