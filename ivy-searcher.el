@@ -107,7 +107,8 @@
   (concat
    (substring ln-str 0 col)
    (propertize input 'face 'ivy-highlight-face)
-   (substring ln-str (+ col (length input)) (length ln-str))))
+   ;; TODO: Seems like this sometimes break for miscalculation?
+   (ignore-errors (substring ln-str (+ col (length input)) (length ln-str)))))
 
 (defun ivy-searcher--candidate-to-plist (cand)
   "Convert CAND string to a plist data."
@@ -207,6 +208,7 @@
 (defun ivy-searcher-search-project ()
   "Search through the project."
   (interactive)
+  (searcher-clean-cache)
   (let ((ivy-searcher--initial-input (ivy-searcher--initial-input-or-region)))
     (ivy-read (format ivy-searcher--prompt-format "Search")
               #'ivy-searcher--do-search-project
@@ -219,6 +221,7 @@
 (defun ivy-searcher-search-file ()
   "Search through current file."
   (interactive)
+  (searcher-clean-cache)
   (let ((ivy-searcher--initial-input (ivy-searcher--initial-input-or-region))
         (ivy-searcher--target-buffer (or (buffer-file-name) (buffer-name))))
     (ivy-read (format ivy-searcher--prompt-format "Search")
@@ -271,6 +274,7 @@
 (defun ivy-searcher-replace-project ()
   "Search and replace string in project."
   (interactive)
+  (searcher-clean-cache)
   (let ((ivy-searcher--initial-input (ivy-searcher--initial-input-or-region)))
     (ivy-read (format ivy-searcher--prompt-format "Replace")
               #'ivy-searcher--do-search-project
@@ -283,6 +287,7 @@
 (defun ivy-searcher-replace-file ()
   "Search and replace string in file."
   (interactive)
+  (searcher-clean-cache)
   (let ((ivy-searcher--initial-input (ivy-searcher--initial-input-or-region))
         (ivy-searcher--target-buffer (or (buffer-file-name) (buffer-name))))
     (ivy-read (format ivy-searcher--prompt-format "Replace")
