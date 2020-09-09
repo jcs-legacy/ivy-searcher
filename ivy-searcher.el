@@ -59,11 +59,21 @@
   :type 'string
   :group 'ivy-searcher)
 
+(defcustom ivy-searcher-preselect 'next
+  "Preselect option."
+  :type '(choice (const :tag "none" nil)
+                 (const :tag "previous search candidate" previous)
+                 (const :tag "next search candidate" next))
+  :group 'ivy-searcher)
+
 (defconst ivy-searcher--prompt-format "[Searcher] %s: "
   "Prompt string when using `ivy-searcher'.")
 
 (defvar ivy-searcher--initial-input nil
   "Current initial input for searcher.")
+
+(defvar ivy-searcher--last-input nil
+  "Record down the last input for preselecting behaviour.")
 
 (defvar ivy-searcher--target-buffer nil
   "Record down the current target buffer.")
@@ -74,8 +84,11 @@
 (defvar ivy-searcher--replace-string ""
   "Record down the current replace string.")
 
-(defvar ivy-searcher--replace-candidates '()
+(defvar ivy-searcher--candidates '()
   "Record down all the candidates for searching.")
+
+(defvar ivy-searcher--buffer-info '()
+  "List of data about the current winodw buffer.")
 
 ;;; Util
 
@@ -104,11 +117,12 @@
 
 (defun ivy-searcher--propertize-line-string (ln-str input col)
   "Propertize the LN-STR with INPUT and column (COL)."
-  (concat
-   (substring ln-str 0 col)
-   (propertize input 'face 'ivy-highlight-face)
-   ;; TODO: Seems like this sometimes break for miscalculation?
-   (ignore-errors (substring ln-str (+ col (length input)) (length ln-str)))))
+  (let ((sec1 (+ col (length input))))
+    (concat
+     (substring ln-str 0 col)
+     (propertize (substring ln-str col sec1) 'face 'ivy-highlight-face)
+     ;; TODO: Seems like this sometimes break for miscalculation?
+     (ignore-errors (substring ln-str sec1 (length ln-str))))))
 
 (defun ivy-searcher--candidate-to-plist (cand)
   "Convert CAND string to a plist data."
@@ -133,6 +147,49 @@
 
 ;;; Search
 
+(defun ivy-searcher--delay-display ()
+  "Delay display a bit so the preselect can get updated."
+  (let ((ivy-dynamic-exhibit-delay-ms 0.1)) (ivy--queue-exhibit)))
+
+(defun ivy-searcher--search-preselect ()
+  "Preselect the candidate depends on `ivy-searcher-preselect' option."
+  (when (and ivy-searcher-preselect
+             (not (string= ivy-searcher--last-input ivy-text)))
+    (setq ivy-searcher--last-input ivy-text)  ; Record last input.
+    (let ((pre-file (plist-get ivy-searcher--buffer-info :file))
+          (pre-pos (plist-get ivy-searcher--buffer-info :position))
+          (pre-ln (plist-get ivy-searcher--buffer-info :line-number))
+          (pre-col (plist-get ivy-searcher--buffer-info :column))
+          select-index
+          (del-val (if (eq ivy-searcher-preselect 'previous) -1 0)))
+      (setq select-index
+            (cl-position
+             nil ivy-searcher--candidates
+             :test
+             (lambda (_key cand)
+               (let* ((cand-plist (cdr cand))
+                      (cand-file (plist-get cand-plist :file))
+                      (cand-pos (plist-get cand-plist :position))
+                      (cand-ln (plist-get cand-plist :line-number))
+                      (cand-col (plist-get cand-plist :column)))
+                 (when (string= cand-file pre-file)
+                   (cl-case ivy-searcher-display-info
+                     ('position (<= pre-pos cand-pos))
+                     ('line/column (or (< pre-ln cand-ln)
+                                       (and (<= pre-ln cand-ln)
+                                            (<= pre-col cand-col))))))))))
+      (when select-index
+        (ivy-set-index (+ select-index del-val))
+        (ivy-searcher--delay-display)))))
+
+(defun ivy-searcher--init ()
+  "Initialize and get ready for searcher to search."
+  (searcher-clean-cache)
+  (setq ivy-searcher--buffer-info (list :file (or (buffer-file-name) (buffer-name))
+                                        :position (point)
+                                        :line-number (line-number-at-pos)
+                                        :column (1- (current-column)))))
+
 (defun ivy-searcher--do-search-complete-action (cand)
   "Do action with CAND."
   (let* ((project-dir (ivy-searcher--project-path))
@@ -155,10 +212,8 @@
 
 (defun ivy-searcher--do-search-input-action (input cands dir)
   "Do the search action by INPUT, CANDS and DIR."
-  (let ((candidates '())
-        (file nil) (ln-str nil) (pos nil) (ln nil) (col nil)
-        (candidate ""))
-    (setq ivy-searcher--replace-candidates '())  ; Clean up.
+  (let ((candidates '()) (candidate "") file ln-str pos ln col)
+    (setq ivy-searcher--candidates '())  ; Clean up.
     (dolist (item cands)
       (setq file (plist-get item :file)) (setq file (s-replace dir "" file))
       (progn  ; Resolve line string.
@@ -187,7 +242,7 @@
                        ln-str))))
       (push candidate candidates)
       ;; Record down all the candidates.
-      (push (cons candidate item) ivy-searcher--replace-candidates))
+      (push (cons candidate item) ivy-searcher--candidates))
     candidates))
 
 (defun ivy-searcher--do-search-project (input)
@@ -208,20 +263,21 @@
 (defun ivy-searcher-search-project ()
   "Search through the project."
   (interactive)
-  (searcher-clean-cache)
+  (ivy-searcher--init)
   (let ((ivy-searcher--initial-input (ivy-searcher--initial-input-or-region)))
     (ivy-read (format ivy-searcher--prompt-format "Search")
               #'ivy-searcher--do-search-project
               :initial-input ivy-searcher--initial-input
               :dynamic-collection t
               :require-match t
+              :update-fn #'ivy-searcher--search-preselect
               :action #'ivy-searcher--do-search-complete-action)))
 
 ;;;###autoload
 (defun ivy-searcher-search-file ()
   "Search through current file."
   (interactive)
-  (searcher-clean-cache)
+  (ivy-searcher--init)
   (let ((ivy-searcher--initial-input (ivy-searcher--initial-input-or-region))
         (ivy-searcher--target-buffer (or (buffer-file-name) (buffer-name))))
     (ivy-read (format ivy-searcher--prompt-format "Search")
@@ -229,6 +285,7 @@
               :initial-input ivy-searcher--initial-input
               :dynamic-collection t
               :require-match t
+              :update-fn #'ivy-searcher--search-preselect
               :action #'ivy-searcher--do-search-complete-action)))
 
 ;;; Replace
@@ -236,7 +293,7 @@
 (defun ivy-searcher--do-replace-complete-action (_cand)
   "Replace all recorded candidates."
   (let ((output-files '()))
-    (dolist (cand ivy-searcher--replace-candidates)
+    (dolist (cand ivy-searcher--candidates)
       (let* ((cand-plist (cdr cand))
              (file (plist-get cand-plist :file))
              (new-content nil))
@@ -251,7 +308,7 @@
   "Update the candidates with INPUT in ivy so the user can look at it."
   (setq ivy-searcher--replace-string input)
   (let ((candidates '()))
-    (dolist (cand ivy-searcher--replace-candidates)
+    (dolist (cand ivy-searcher--candidates)
       (let* ((cand-str (car cand)) (cand-plist (cdr cand))
              (ln-str (plist-get cand-plist :string)))
         (setq cand
@@ -274,7 +331,7 @@
 (defun ivy-searcher-replace-project ()
   "Search and replace string in project."
   (interactive)
-  (searcher-clean-cache)
+  (ivy-searcher--init)
   (let ((ivy-searcher--initial-input (ivy-searcher--initial-input-or-region)))
     (ivy-read (format ivy-searcher--prompt-format "Replace")
               #'ivy-searcher--do-search-project
@@ -287,7 +344,7 @@
 (defun ivy-searcher-replace-file ()
   "Search and replace string in file."
   (interactive)
-  (searcher-clean-cache)
+  (ivy-searcher--init)
   (let ((ivy-searcher--initial-input (ivy-searcher--initial-input-or-region))
         (ivy-searcher--target-buffer (or (buffer-file-name) (buffer-name))))
     (ivy-read (format ivy-searcher--prompt-format "Replace")
