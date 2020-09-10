@@ -179,8 +179,8 @@
                                        (and (<= pre-ln cand-ln)
                                             (<= pre-col cand-col))))))))))
       (when select-index
-        ;; Use `max' to prevent it goes lower than 1.
-        (ivy-set-index (max (+ select-index del-val) 1))
+        ;; Use `max' to prevent it goes lower than 0.
+        (ivy-set-index (max (+ select-index del-val) 0))
         (ivy-searcher--delay-display)))))
 
 (defun ivy-searcher--init ()
