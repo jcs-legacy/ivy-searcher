@@ -326,6 +326,7 @@
             #'ivy-searcher--do-replace
             :dynamic-collection t
             :require-match t
+            :update-fn #'ivy-searcher--search-preselect
             :action #'ivy-searcher--do-replace-complete-action))
 
 ;;;###autoload
@@ -339,6 +340,7 @@
               :initial-input ivy-searcher--initial-input
               :dynamic-collection t
               :require-match t
+              :update-fn #'ivy-searcher--search-preselect
               :action #'ivy-searcher--do-replace-matched-action)))
 
 ;;;###autoload
@@ -353,6 +355,7 @@
               :initial-input ivy-searcher--initial-input
               :dynamic-collection t
               :require-match t
+              :update-fn #'ivy-searcher--search-preselect
               :action #'ivy-searcher--do-replace-matched-action)))
 
 (provide 'ivy-searcher)
