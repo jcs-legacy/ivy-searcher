@@ -179,7 +179,7 @@
                                        (and (<= pre-ln cand-ln)
                                             (<= pre-col cand-col))))))))))
       (when select-index
-        (ivy-set-index (+ select-index del-val))
+        (ivy-set-index (max (+ select-index del-val) 1))
         (ivy-searcher--delay-display)))))
 
 (defun ivy-searcher--init ()
