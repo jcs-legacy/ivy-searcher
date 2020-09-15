@@ -91,7 +91,7 @@
   "List of data about the current winodw buffer.")
 
 (defvar ivy-searcher--current-dir ""
-  "Record the current file directory.")
+  "Record the current search directory in order to find respect relative path.")
 
 ;;; Util
 
