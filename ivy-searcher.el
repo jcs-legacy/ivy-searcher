@@ -90,6 +90,9 @@
 (defvar ivy-searcher--buffer-info '()
   "List of data about the current winodw buffer.")
 
+(defvar ivy-searcher--current-dir ""
+  "Record the current file directory.")
+
 ;;; Util
 
 (defun ivy-searcher--project-path ()
@@ -196,13 +199,12 @@
 
 (defun ivy-searcher--do-search-complete-action (cand)
   "Do action with CAND."
-  (let* ((project-dir (ivy-searcher--project-path))
-         (data (ivy-searcher--candidate-to-plist cand))
+  (let* ((data (ivy-searcher--candidate-to-plist cand))
          (file (plist-get data :file))
          (pos (plist-get data :position))
          (ln (plist-get data :line-number))
          (col (plist-get data :column)))
-    (when project-dir (setq file (f-join project-dir file)))
+    (setq file (f-join ivy-searcher--current-dir file))
     (if (file-exists-p file) (find-file file) (switch-to-buffer file))
     (cl-case ivy-searcher-display-info
       ('position
@@ -217,6 +219,7 @@
 (defun ivy-searcher--do-search-input-action (input cands dir)
   "Do the search action by INPUT, CANDS and DIR."
   (let ((candidates '()) (candidate "") file ln-str pos ln col)
+    (setq ivy-searcher--current-dir dir)
     (setq ivy-searcher--candidates '())  ; Clean up.
     (dolist (item cands)
       (setq file (plist-get item :file)) (setq file (s-replace dir "" file))
