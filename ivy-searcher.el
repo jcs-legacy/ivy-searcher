@@ -134,7 +134,7 @@
   "Convert CAND string to a plist data."
   (let* ((data (split-string cand ivy-searcher-separator))
          (file (nth 0 data)) (ln-str nil)
-         (pos nil) (ln nil) (col nil) )
+         (pos nil) (ln nil) (col nil))
     (cl-case ivy-searcher-display-info
       ('position
        (setq pos (nth 1 data))
@@ -183,7 +183,7 @@
                      ('position (<= pre-pos cand-pos))
                      ('line/column (or (< pre-ln cand-ln)
                                        (and (<= pre-ln cand-ln)
-                                            (<= pre-col cand-col))))))))))
+                                            (< pre-col cand-col))))))))))
       (when select-index
         ;; Use `max' to prevent it goes lower than 0.
         (ivy-set-index (max (+ select-index del-val) 0))
@@ -225,7 +225,7 @@
       (setq file (plist-get item :file)) (setq file (s-replace dir "" file))
       (progn  ; Resolve line string.
         (setq ln-str (plist-get item :string))
-        (setq col (1+ (plist-get item :column)))
+        (setq col (plist-get item :column))
         (setq ln-str (ivy-searcher--propertize-line-string ln-str input col)))
       (progn  ; Resolve information.
         (setq pos (plist-get item :position)) (setq pos (number-to-string pos))
