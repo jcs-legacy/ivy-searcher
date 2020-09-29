@@ -184,10 +184,11 @@
                      ('line/column (or (< pre-ln cand-ln)
                                        (and (<= pre-ln cand-ln)
                                             (< pre-col cand-col))))))))))
-      (when select-index
-        ;; Use `max' to prevent it goes lower than 0.
-        (ivy-set-index (max (+ select-index del-val) 0))
-        (ivy-searcher--delay-display)))))
+      (if select-index
+          ;; Use `max' to prevent it goes lower than 0.
+          (ivy-set-index (max (+ select-index del-val) 0))
+        (ivy-set-index 0))
+      (ivy-searcher--delay-display))))
 
 (defun ivy-searcher--init ()
   "Initialize and get ready for searcher to search."
