@@ -59,7 +59,7 @@
   :type 'string
   :group 'ivy-searcher)
 
-(defcustom ivy-searcher-preselect 'next
+(defcustom ivy-searcher-preselect nil
   "Preselect option."
   :type '(choice (const :tag "none" nil)
                  (const :tag "previous search candidate" previous)
@@ -137,13 +137,13 @@
          (pos nil) (ln nil) (col nil))
     (cl-case ivy-searcher-display-info
       ('position
-       (setq pos (nth 1 data))
-       (setq ln-str (nth 2 data)))
+       (setq pos (nth 1 data)
+             ln-str (nth 2 data)))
       ('line/column
-       (setq ln (nth 1 data))
-       (setq col (nth 2 data))
-       (setq ln-str (nth 3 data))))
-    (list :file file :string ln-str :position pos :line-number ln :column col)))
+       (setq ln (nth 1 data)
+             col (nth 2 data)
+             ln-str (nth 3 data))))
+    (list :file file :string ln-str :start pos :line-number ln :column col)))
 
 (defun ivy-searcher--initial-input-or-region ()
   "Return the default initiali input depend if region is active or not."
@@ -163,7 +163,7 @@
              (not (string= ivy-searcher--last-input ivy-text)))
     (setq ivy-searcher--last-input ivy-text)  ; Record last input.
     (let ((pre-file (plist-get ivy-searcher--buffer-info :file))
-          (pre-pos (plist-get ivy-searcher--buffer-info :position))
+          (pre-pos (plist-get ivy-searcher--buffer-info :start))
           (pre-ln (plist-get ivy-searcher--buffer-info :line-number))
           (pre-col (plist-get ivy-searcher--buffer-info :column))
           select-index
@@ -175,7 +175,7 @@
              (lambda (_key cand)
                (let* ((cand-plist (cdr cand))
                       (cand-file (plist-get cand-plist :file))
-                      (cand-pos (plist-get cand-plist :position))
+                      (cand-pos (plist-get cand-plist :start))
                       (cand-ln (plist-get cand-plist :line-number))
                       (cand-col (plist-get cand-plist :column)))
                  (when (string= cand-file pre-file)
@@ -194,7 +194,7 @@
   "Initialize and get ready for searcher to search."
   (searcher-clean-cache)
   (setq ivy-searcher--buffer-info (list :file (or (buffer-file-name) (buffer-name))
-                                        :position (point)
+                                        :start (point)
                                         :line-number (line-number-at-pos)
                                         :column (1- (current-column)))))
 
@@ -202,7 +202,7 @@
   "Do action with CAND."
   (let* ((data (ivy-searcher--candidate-to-plist cand))
          (file (plist-get data :file))
-         (pos (plist-get data :position))
+         (pos (plist-get data :start))
          (ln (plist-get data :line-number))
          (col (plist-get data :column)))
     (setq file (f-join ivy-searcher--current-dir file))
@@ -212,8 +212,8 @@
        (setq pos (string-to-number pos))
        (goto-char (1+ pos)))
       ('line/column
-       (setq ln (string-to-number ln))
-       (setq col (string-to-number col))
+       (setq ln (string-to-number ln)
+             col (string-to-number col))
        (ivy-searcher--goto-line ln)
        (move-to-column col)))))
 
@@ -229,7 +229,7 @@
         (setq col (plist-get item :column))
         (setq ln-str (ivy-searcher--propertize-line-string ln-str input col)))
       (progn  ; Resolve information.
-        (setq pos (plist-get item :position)) (setq pos (number-to-string pos))
+        (setq pos (plist-get item :start)) (setq pos (number-to-string pos))
         (setq ln (plist-get item :line-number)) (setq ln (number-to-string ln))
         (setq col (number-to-string col)))
       (setq candidate
