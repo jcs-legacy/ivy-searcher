@@ -133,14 +133,15 @@
 (defun ivy-searcher--read-selection (selection)
   "Read SELECTION and return list of data (file, line, column)."
   (let ((buf-lst (buffer-list)) buf-name buf-regex sel-lst)
-    (cl-some (lambda (buf)
-               (setq buf-name (buffer-name buf)
-                     buf-regex (format "^%s" (regexp-quote buf-name)))
-               (string-match-p buf-regex selection))
-             buf-lst)
+    (setq found
+          (cl-some (lambda (buf)
+                     (setq buf-name (buffer-name buf)
+                           buf-regex (format "^%s" (regexp-quote buf-name)))
+                     (string-match-p buf-regex selection))
+                   buf-lst))
     (setq selection (s-replace-regexp buf-regex "" selection)
           sel-lst (split-string selection ivy-searcher-separator))
-    (list buf-name (nth 1 sel-lst) (nth 2 sel-lst))))
+    (list (if found buf-name (nth 0 sel-lst)) (nth 1 sel-lst) (nth 2 sel-lst))))
 
 (defun ivy-searcher--candidate-to-plist (cand)
   "Convert CAND string to a plist data."
