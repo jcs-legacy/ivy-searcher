@@ -130,16 +130,28 @@
        (propertize (substring ln-str col sec1) 'face 'ivy-highlight-face)
        (substring ln-str sec1 (length ln-str))))))
 
+(defun ivy-searcher--read-selection (selection)
+  "Read SELECTION and return list of data (file, line, column)."
+  (let ((buf-lst (buffer-list)) buf-name buf-regex sel-lst)
+    (cl-some (lambda (buf)
+               (setq buf-name (buffer-name buf)
+                     buf-regex (format "^%s" (regexp-quote buf-name)))
+               (string-match-p buf-regex selection))
+             buf-lst)
+    (setq selection (s-replace-regexp buf-regex "" selection)
+          sel-lst (split-string selection ivy-searcher-separator))
+    (list buf-name (nth 1 sel-lst) (nth 2 sel-lst))))
+
 (defun ivy-searcher--candidate-to-plist (cand)
   "Convert CAND string to a plist data."
-  (let* ((data (split-string cand ivy-searcher-separator))
-         (file (nth 0 data)) (ln-str nil)
-         (pos nil) (ln nil) (col nil))
+  (let* ((data (ivy-searcher--read-selection cand))
+         (file (nth 0 data)) ln-str
+         pos ln col)
     (cl-case ivy-searcher-display-info
-      ('position
+      (position
        (setq pos (nth 1 data)
              ln-str (nth 2 data)))
-      ('line/column
+      (line/column
        (setq ln (nth 1 data)
              col (nth 2 data)
              ln-str (nth 3 data))))
@@ -180,10 +192,10 @@
                       (cand-col (plist-get cand-plist :column)))
                  (when (string= cand-file pre-file)
                    (cl-case ivy-searcher-display-info
-                     ('position (<= pre-pos cand-pos))
-                     ('line/column (or (< pre-ln cand-ln)
-                                       (and (<= pre-ln cand-ln)
-                                            (< pre-col cand-col))))))))))
+                     (position (<= pre-pos cand-pos))
+                     (line/column (or (< pre-ln cand-ln)
+                                      (and (<= pre-ln cand-ln)
+                                           (< pre-col cand-col))))))))))
       (if select-index
           ;; Use `max' to prevent it goes lower than 0.
           (ivy-set-index (max (+ select-index del-val) 0))
@@ -201,17 +213,17 @@
 (defun ivy-searcher--do-search-complete-action (cand)
   "Do action with CAND."
   (let* ((data (ivy-searcher--candidate-to-plist cand))
-         (file (plist-get data :file))
+         (file (plist-get data :file)) (filename (f-filename file))
          (pos (plist-get data :start))
          (ln (plist-get data :line-number))
          (col (plist-get data :column)))
     (setq file (f-join ivy-searcher--current-dir file))
-    (if (file-exists-p file) (find-file file) (switch-to-buffer file))
+    (if (file-exists-p file) (find-file file) (switch-to-buffer filename))
     (cl-case ivy-searcher-display-info
-      ('position
+      (position
        (setq pos (string-to-number pos))
        (goto-char (1+ pos)))
-      ('line/column
+      (line/column
        (setq ln (string-to-number ln)
              col (string-to-number col))
        (ivy-searcher--goto-line ln)
@@ -234,13 +246,13 @@
         (setq col (number-to-string col)))
       (setq candidate
             (cl-case ivy-searcher-display-info
-              ('position
+              (position
                (concat (propertize file 'face 'ivy-grep-info)
                        (ivy-searcher--separator-string)
                        (propertize pos 'face 'ivy-grep-line-number)
                        (ivy-searcher--separator-string)
                        ln-str))
-              ('line/column
+              (line/column
                (concat (propertize file 'face 'ivy-grep-info)
                        (ivy-searcher--separator-string)
                        (propertize ln 'face 'ivy-grep-line-number)
