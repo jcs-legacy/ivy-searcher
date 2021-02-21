@@ -139,7 +139,7 @@
                            buf-regex (format "^%s" (regexp-quote buf-name)))
                      (string-match-p buf-regex selection))
                    buf-lst))
-    (setq selection (s-replace-regexp buf-regex "" selection t)
+    (setq selection (s-replace-regexp buf-regex "" selection)
           sel-lst (split-string selection ivy-searcher-separator))
     (list (if found buf-name (nth 0 sel-lst)) (nth 1 sel-lst) (nth 2 sel-lst))))
 
