@@ -139,7 +139,7 @@
                            buf-regex (format "^%s" (regexp-quote buf-name)))
                      (string-match-p buf-regex selection))
                    buf-lst))
-    (setq selection (s-replace-regexp buf-regex "" selection)
+    (setq selection (s-replace-regexp buf-regex "" selection t)
           sel-lst (split-string selection ivy-searcher-separator))
     (list (if found buf-name (nth 0 sel-lst)) (nth 1 sel-lst) (nth 2 sel-lst))))
 
@@ -322,7 +322,8 @@
           (push file output-files)
           (setq new-content (s-replace-regexp ivy-searcher--search-string
                                               ivy-searcher--replace-string
-                                              (ivy-searcher--get-string-from-file file)))
+                                              (ivy-searcher--get-string-from-file file)
+                                              t))
           (write-region new-content nil file))))))
 
 (defun ivy-searcher--do-replace (input)
@@ -335,7 +336,7 @@
         (setq cand
               (concat
                (substring cand-str 0 (- (length cand-str) (length ln-str)))
-               (s-replace-regexp ivy-searcher--search-string input ln-str)))
+               (s-replace-regexp ivy-searcher--search-string input ln-str t)))
         (push cand candidates)))
     (reverse candidates)))
 
