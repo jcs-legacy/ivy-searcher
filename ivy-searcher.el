@@ -132,7 +132,7 @@
 
 (defun ivy-searcher--read-selection (selection)
   "Read SELECTION and return list of data (file, line, column)."
-  (let ((buf-lst (buffer-list)) buf-name buf-regex sel-lst)
+  (let ((buf-lst (buffer-list)) buf-name buf-regex sel-lst found)
     (setq found
           (cl-some (lambda (buf)
                      (setq buf-name (buffer-name buf)
