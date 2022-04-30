@@ -1,6 +1,15 @@
-(source "melpa")
+(package "ivy-searcher"
+         "0.3.10"
+         "Ivy interface to use searcher")
 
 (package-file "ivy-searcher.el")
 
-(setq network-security-level 'low      ; see https://github.com/jcs090218/setup-emacs-windows/issues/156#issuecomment-932956432
-      byte-compile-error-on-warn nil)
+(source "melpa")
+
+(depends-on "emacs" "25.1")
+(depends-on "ivy")
+(depends-on "searcher")
+(depends-on "s")
+(depends-on "f")
+
+(setq network-security-level 'low)  ; see https://github.com/jcs090218/setup-emacs-windows/issues/156#issuecomment-932956432
