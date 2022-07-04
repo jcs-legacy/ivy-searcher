@@ -3,7 +3,7 @@
          "Ivy interface to use searcher")
 
 (website-url "https://github.com/jcs-elpa/ivy-searcher")
-(keywords "ivy" "interface" "searcher" "search" "replace" "grep" "ag" "rg")
+(keywords "convenience" "ivy" "interface" "searcher" "search" "replace" "grep" "ag" "rg")
 
 (package-file "ivy-searcher.el")
 
