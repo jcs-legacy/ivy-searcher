@@ -1,5 +1,6 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![JCS-ELPA](https://raw.githubusercontent.com/jcs-emacs/badges/master/elpa/v/ivy-searcher.svg)](https://jcs-emacs.github.io/jcs-elpa/#/ivy-searcher)
+[![MELPA](https://melpa.org/packages/ivy-searcher-badge.svg)](https://melpa.org/#/ivy-searcher)
+[![MELPA Stable](https://stable.melpa.org/packages/ivy-searcher-badge.svg)](https://stable.melpa.org/#/ivy-searcher)
 
 # ivy-searcher
 > Ivy interface to use searcher.
