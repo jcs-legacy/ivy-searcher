@@ -5,7 +5,7 @@
 # ivy-searcher
 > Ivy interface to use searcher.
 
-[![CI](https://github.com/jcs-elpa/ivy-searcher/actions/workflows/test.yml/badge.svg)](https://github.com/jcs-elpa/ivy-searcher/actions/workflows/test.yml)
+[![CI](https://github.com/jcs-legacy/ivy-searcher/actions/workflows/test.yml/badge.svg)](https://github.com/jcs-legacy/ivy-searcher/actions/workflows/test.yml)
 
 ## 🔧 Usage
 
