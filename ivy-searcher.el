@@ -1,6 +1,6 @@
 ;;; ivy-searcher.el --- Ivy interface to use searcher  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2020-2021  Shen, Jen-Chieh
+;; Copyright (C) 2020-2024  Shen, Jen-Chieh
 ;; Created date 2020-06-19 22:30:03
 
 ;; Author: Shen, Jen-Chieh <jcs090218@gmail.com>
