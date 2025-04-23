@@ -1,3 +1,5 @@
+;; -*- mode: eask; lexical-binding: t -*-
+
 (package "ivy-searcher"
          "0.3.10"
          "Ivy interface to use searcher")
